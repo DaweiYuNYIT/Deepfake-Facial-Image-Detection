@@ -47,13 +47,13 @@ def build_xception_model():
     model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
     return model
 
-# xception_model = build_xception_model()
-# xception_model.fit(
-#     train_generator,
-#     validation_data=validation_generator,
-#     epochs=EPOCHS
-# )
-# xception_model.save_weights('weights/xception_finetuned.weights.h5')
+xception_model = build_xception_model()
+xception_model.fit(
+     train_generator,
+     validation_data=validation_generator,
+     epochs=EPOCHS
+ )
+xception_model.save_weights('weights/xception_finetuned.weights.h5')
 
 # Build and fine-tune EfficientNet
 def build_efficientnet_model():
