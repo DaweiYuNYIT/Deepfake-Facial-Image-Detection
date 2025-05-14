@@ -4,6 +4,9 @@ from tensorflow.keras.preprocessing.image import ImageDataGenerator
 from tensorflow.keras.applications import Xception, EfficientNetB0
 from tensorflow.keras.layers import GlobalAveragePooling2D, Dense, Dropout
 from tensorflow.keras.models import Model
+from classifiers import ViTClassifier
+from PIL import Image
+import torch
 
 # Parameters
 IMG_WIDTH = 256
@@ -74,3 +77,15 @@ efficientnet_model.fit(
     epochs=EPOCHS
 )
 efficientnet_model.save_weights('weights/efficientnet_finetuned.weights.h5')
+
+# Build and fine-tune ViT
+def build_vit_model():
+    return ViTClassifier()
+
+# Example: Training ViT (requires torch DataLoader, not Keras)
+# You need to prepare PyTorch DataLoader for train and validation sets
+# train_loader = ...
+# val_loader = ...
+# vit_model = build_vit_model()
+# vit_model.fit(train_loader, val_loader, epochs=EPOCHS)
+# vit_model.model.save_pretrained('weights/vit_finetuned')

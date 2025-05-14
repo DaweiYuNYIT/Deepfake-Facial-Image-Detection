@@ -3,6 +3,8 @@
 from tensorflow.keras.models import Model as KerasModel
 from tensorflow.keras.layers import Input, Dense, Flatten, Conv2D, MaxPooling2D, BatchNormalization, Dropout, Reshape, Concatenate, LeakyReLU
 from tensorflow.keras.optimizers import Adam
+from transformers import ViTForImageClassification, ViTFeatureExtractor
+import torch
 
 IMGWIDTH = 256
 
@@ -134,3 +136,61 @@ class MesoInception4(Classifier):
         y = Dense(1, activation = 'sigmoid')(y)
 
         return KerasModel(inputs = x, outputs = y)
+
+
+class ViTClassifier:
+    def __init__(self, model_name='google/vit-base-patch16-224', num_labels=1):
+        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        self.feature_extractor = ViTFeatureExtractor.from_pretrained(model_name)
+        self.model = ViTForImageClassification.from_pretrained(
+            model_name,
+            num_labels=num_labels,
+            problem_type='single_label_classification'
+        ).to(self.device)
+
+    def preprocess(self, image):
+        # image: numpy array (H, W, C) in [0, 255]
+        inputs = self.feature_extractor(images=image, return_tensors="pt")
+        return {k: v.to(self.device) for k, v in inputs.items()}
+
+    def predict(self, image):
+        self.model.eval()
+        with torch.no_grad():
+            inputs = self.preprocess(image)
+            outputs = self.model(**inputs)
+            logits = outputs.logits
+            prob = torch.sigmoid(logits).cpu().numpy()[0][0]
+            return prob
+
+    def fit(self, train_loader, val_loader=None, epochs=3, lr=2e-5):
+        optimizer = torch.optim.AdamW(self.model.parameters(), lr=lr)
+        loss_fn = torch.nn.BCEWithLogitsLoss()
+        for epoch in range(epochs):
+            self.model.train()
+            for batch in train_loader:
+                images, labels = batch
+                inputs = self.feature_extractor(images=list(images), return_tensors="pt")
+                inputs = {k: v.to(self.device) for k, v in inputs.items()}
+                labels = labels.float().unsqueeze(1).to(self.device)
+                outputs = self.model(**inputs)
+                loss = loss_fn(outputs.logits, labels)
+                optimizer.zero_grad()
+                loss.backward()
+                optimizer.step()
+            if val_loader:
+                self.evaluate(val_loader)
+
+    def evaluate(self, data_loader):
+        self.model.eval()
+        correct = 0
+        total = 0
+        with torch.no_grad():
+            for batch in data_loader:
+                images, labels = batch
+                inputs = self.feature_extractor(images=list(images), return_tensors="pt")
+                inputs = {k: v.to(self.device) for k, v in inputs.items()}
+                outputs = self.model(**inputs)
+                preds = torch.sigmoid(outputs.logits).cpu().numpy() > 0.5
+                correct += (preds.flatten() == labels.numpy()).sum()
+                total += len(labels)
+        print(f'ViT Accuracy: {correct/total:.4f} ({correct}/{total})')
