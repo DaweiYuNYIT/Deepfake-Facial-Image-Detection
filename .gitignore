@@ -1,0 +1,16 @@
+# Exclude training and validation data
+train/
+validate/
+weights/
+
+# Exclude Python cache files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Exclude model weights if they get too large
+# weights/
+
+# OS specific files
+.DS_Store
+Thumbs.db

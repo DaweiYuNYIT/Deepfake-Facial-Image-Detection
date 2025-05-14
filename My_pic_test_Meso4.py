@@ -1,8 +1,17 @@
 # -*- coding: utf-8 -*-
 import os
 import numpy as np
+import tensorflow as tf
 from tensorflow.keras.preprocessing.image import load_img, img_to_array
 from classifiers import Meso4  # meso_models.py in the same directory
+
+# Configure TensorFlow to use GPU
+physical_devices = tf.config.list_physical_devices('GPU')
+if len(physical_devices) > 0:
+    tf.config.experimental.set_memory_growth(physical_devices[0], True)
+    print(f"Using GPU: {physical_devices[0].name}")
+else:
+    print("No GPU available, using CPU.")
 
 # Parameters
 IMG_WIDTH = 256
@@ -22,13 +31,20 @@ def preprocess_image(image_path):
 
 # Predict and print results for each image
 def judge_image(image_path):
+    print(f"\nAnalyzing images in {image_path}:")
+    print("-" * 60)
+    
     for image_name in os.listdir(image_path):
         if image_name.endswith(('.jpg', '.png')):
             file_path = os.path.join(image_path, image_name)
             img_data = preprocess_image(file_path)
             prediction = model.predict(img_data)[0][0]
             label = 'Real' if prediction >= 0.5 else 'Fake'
-            print(f'Path:{file_path},Prediction: {prediction:.4f}, Label: {label}')
+            print(f'Image: {image_name:30} | Prediction: {prediction:.4f} | Label: {label}')
+    
+    print("-" * 60)
 
+print("\nTesting Meso4 model on images...")
 judge_image(IMAGE_DIR_REAL)
 judge_image(IMAGE_DIR_FAKE)
+print("\nAnalysis complete!")
